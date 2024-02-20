@@ -1,0 +1,9 @@
+fastqc/
+index/
+multiqc_data/
+multiqc_report_trimmed_data/
+samples_trimmed/
+trimmed_fastqc/
+.snakemake/
+multiqc_report.html
+multiqc_report_trimmed.html
