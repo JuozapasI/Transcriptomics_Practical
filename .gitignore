@@ -7,3 +7,9 @@ trimmed_fastqc/
 .snakemake/
 multiqc_report.html
 multiqc_report_trimmed.html
+.RData
+.Rhistory
+bam/
+counts/
+deseq/
+pca/
