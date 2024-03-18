@@ -8,8 +8,8 @@ rule all:
     input:
         "multiqc_report.html",
         "multiqc_report_trimmed.html",
-        "counts/counts_incorrect_strand.txt",
-        expand("counts/{sample}.txt", sample=samples_pairs),
+        "fgsea/KAPA_pathways.tsv",
+        "fgsea/Collibri_pathways.tsv",
         "practical.pdf"
 
 rule fastqc:
@@ -109,31 +109,46 @@ rule count:
         "if ((entry_file1 > entry_file2)); then mv counts/tmp1.txt {output} && mv counts/tmp1.txt.summary {output}.summary; "
         "else mv counts/tmp2.txt {output} && mv counts/tmp2.txt.summary {output}.summary; fi"
 
-rule count_collibri:
-    input:
-        expand("bam/{sample}.bam", sample=[x for x in samples_pairs if x.startswith("Collibri")])
-    output:
-        "counts/collibri.txt"
-    shell:
-        "~/Kita/subread-2.0.6-Linux-x86_64/bin/featureCounts -p -t exon -g gene_id "
-        "-a data/chr19_20Mb.gtf -o {output} {input} -s 1"
+def get_bam_samples(wildcards):
+    return ["bam/" + string + ".bam" for string in samples_pairs if string.startswith(wildcards.sample)]
 
-rule count_kapa:
+rule count_multi:
     input:
-        expand("bam/{sample}.bam", sample=[x for x in samples_pairs if x.startswith("KAPA")])
+        get_bam_samples
     output:
-        "counts/kapa.txt"
+        "counts/{sample}.txt.tmp1",
+        "counts/{sample}.txt.tmp2",
+        "counts/{sample}.txt.tmp1.summary",
+        "counts/{sample}.txt.tmp2.summary"
     shell:
-        "~/Kita/subread-2.0.6-Linux-x86_64/bin/featureCounts -p -t exon -g gene_id "
-        "-a data/chr19_20Mb.gtf -o {output} {input} -s 2"
+        "~/Kita/subread-2.0.6-Linux-x86_64/bin/featureCounts -p -t exon -g gene_id -a data/chr19_20Mb.gtf -o "
+        "{output[0]} {input} -s 1 && "
+        "~/Kita/subread-2.0.6-Linux-x86_64/bin/featureCounts -p -t exon -g gene_id -a data/chr19_20Mb.gtf -o "
+        "{output[1]} {input} -s 2"
 
-rule count_incorrect_strand:
+rule check_strand:
+    input:
+        "counts/{sample}.txt.tmp1",
+        "counts/{sample}.txt.tmp2",
+        "counts/{sample}.txt.tmp1.summary",
+        "counts/{sample}.txt.tmp2.summary"
     output:
-        "counts/counts_incorrect_strand.txt"
-    shell:
-        "~/Kita/subread-2.0.6-Linux-x86_64/bin/featureCounts -p -t exon -g gene_id "
-        "-a data/chr19_20Mb.gtf -o counts/counts_incorrect_strand.txt "
-        "bam/Collibri_standard_protocol-HBR-Collibri-100_ng-2_S1_L001.bam -s 2"
+        "counts/{sample}.txt",
+        "counts/{sample}.txt.summary"
+    run:
+        import pandas as pd
+        import os
+        df1 = pd.read_csv(input[2], sep="\t", index_col = 0)
+        df2 = pd.read_csv(input[3], sep="\t", index_col = 0)
+        row_comparison = (df1.iloc[0] > df2.iloc[0])
+        if row_comparison.all():
+            os.rename(input[0], output[0])
+            os.rename(input[2], output[1])
+        elif not row_comparison.any():
+            os.rename(input[1], output[0])
+            os.rename(input[3], output[1])
+        else:
+            print("Different strands were detected, check input files!")
 
 rule DESeq:
     input:
@@ -146,13 +161,12 @@ rule DESeq:
 
 rule PCA:
     input:
-        "counts/collibri.txt",
-        "counts/kapa.txt",
-        "deseq/collibri.csv",
-        "deseq/kapa.csv"
+        "counts/Collibri.txt",
+        "counts/KAPA.txt",
+        "deseq/Collibri.csv",
+        "deseq/KAPA.csv"
     output:
-        "pca/collibri.png",
-        "pca/kapa.png"
+        "pca/pca.png"
     shell:
         "Rscript scripts/pca.R {input}"
 
@@ -166,8 +180,9 @@ rule fgsea:
 
 rule reportPDF:
     input:
-         "deseq/collibri.png",
-         "deseq/kapa.png",
+         "deseq/Collibri.png",
+         "deseq/KAPA.png",
+         "pca/pca.png",
          "practical.tex"
     output:
          "practical.pdf"
