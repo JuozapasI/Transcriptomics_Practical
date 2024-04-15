@@ -1,0 +1,44 @@
+\documentclass{article}
+\usepackage{subcaption}
+\usepackage{graphicx}
+\usepackage[margin=1in]{geometry}
+
+\title{Transcriptomics Practical}
+\author{Juozapas}
+
+\begin{document}
+
+\maketitle
+
+5. MultiQC reports can be found as a separate files.
+The successful removal of adapters can be seen in the Adapter Content section.
+
+7. Collibri method uses strand 1 while KAPA uses strand 2.
+
+
+11. Shrunken, because the dataset is very small in our case.
+
+
+\begin{figure}
+  \centering
+  \begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{deseq/Collibri.png}
+    \caption{collibri}
+  \end{subfigure}
+  \hfill
+  \begin{subfigure}{0.4\textwidth}
+    \includegraphics[width=\textwidth]{deseq/KAPA.png}
+    \caption{KAPA}
+  \end{subfigure}
+  \caption{Volcano plots}
+  \label{fig:volcanos}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.5\textwidth]{pca/pca.png}
+  \caption{PCA plot}
+  \label{fig:pca}
+\end{figure}
+
+\end{document}
